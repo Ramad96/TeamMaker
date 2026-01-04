@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Court Rotator v1.0.4</title>
+    <title>Court Rotator v1.0.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -20,8 +20,8 @@
         
         <div id="setupScreen" class="space-y-6">
             <div class="text-center">
-                <h1 class="text-3xl font-black text-white italic tracking-tighter uppercase">COURT ROTATOR <span class="text-xs align-top text-indigo-500 ml-1">v1.0.4</span></h1>
-                <p class="text-slate-500 text-xs mt-1">Version 1.0.4 • Singles & Doubles Support</p>
+                <h1 class="text-3xl font-black text-white italic tracking-tighter uppercase">COURT ROTATOR <span class="text-xs align-top text-indigo-500 ml-1">v1.0.6</span></h1>
+                <p class="text-slate-500 text-xs mt-1">Version 1.0.6 • Advanced Bench Swapping</p>
             </div>
 
             <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-6">
@@ -49,13 +49,8 @@
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    <textarea id="playerInput" rows="5" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all" placeholder="Enter player names..."></textarea>
-                </div>
-
-                <button onclick="initGame()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
-                    Start Session
-                </button>
+                <textarea id="playerInput" rows="5" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all" placeholder="Enter names..."></textarea>
+                <button onclick="initGame()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">Start Session</button>
             </div>
         </div>
 
@@ -67,207 +62,164 @@
 
             <div id="courtsContainer" class="space-y-8"></div>
 
-            <div id="rotationMeta" class="space-y-4 pt-6 border-t border-slate-900">
+            <div id="scoreArea" class="hidden bg-slate-900 border border-indigo-500/50 p-5 rounded-3xl space-y-4 fade-in">
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-xs font-bold uppercase text-indigo-400">Record Final Score</span>
+                    <button onclick="cancelScore()" class="text-slate-500 hover:text-white"><i data-lucide="x" size="16"></i></button>
+                </div>
+                <div class="flex items-center gap-4">
+                    <input type="number" id="scoreA" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold" placeholder="Team A">
+                    <span class="font-black text-slate-700">-</span>
+                    <input type="number" id="scoreB" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold" placeholder="Team B">
+                </div>
+                <button onclick="confirmRotation()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold text-sm">Submit & Rotate</button>
+            </div>
+
+            <div id="rotationMeta" class="space-y-6 pt-6 border-t border-slate-900">
                 <div id="waitingTeamsSection" class="hidden">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 mb-2 text-center">Next Challenger(s)</h3>
                     <div id="waitingTeamsList" class="space-y-2"></div>
                 </div>
                 <div id="soloSection" class="hidden">
-                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 mb-2">Odd Player Out</h3>
                     <div class="bg-amber-500/5 border border-amber-500/20 p-4 rounded-3xl flex items-center justify-between">
-                        <span id="soloName" class="font-bold text-amber-500 text-lg"></span>
-                        <button onclick="manualSwap()" class="bg-amber-500 text-black px-4 py-2 rounded-xl text-xs font-black active:scale-90">SWAP IN</button>
+                        <div>
+                            <span id="soloName" class="font-bold text-amber-500 text-lg"></span>
+                            <p class="text-[9px] text-amber-600 uppercase font-bold tracking-tighter">Bench (Solo)</p>
+                        </div>
+                        <button onclick="manualSwap()" class="bg-amber-500 text-black px-4 py-2 rounded-xl text-xs font-black active:scale-90 shadow-lg shadow-amber-500/20">SWAP INTO TEAM</button>
                     </div>
+                </div>
+                <div id="historySection" class="hidden space-y-3">
+                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 text-center">Match History</h3>
+                    <div id="historyList" class="space-y-2"></div>
                 </div>
             </div>
 
-            <div id="tournamentResults" class="hidden space-y-4 pt-6 border-t border-slate-900">
-                <div id="podium" class="space-y-2"></div>
-            </div>
-
-            <div id="actionArea" class="hidden pt-2">
-                <button id="nextPhaseBtn" onclick="progressTournament()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95">
-                    Advance Phase
-                </button>
-            </div>
+            <div id="tournamentResults" class="hidden space-y-4 pt-6 border-t border-slate-900"><div id="podium" class="space-y-2"></div></div>
+            <div id="actionArea" class="hidden pt-2"><button id="nextPhaseBtn" onclick="progressTournament()" class="w-full bg-emerald-600 font-bold py-4 rounded-2xl shadow-lg active:scale-95">Advance Phase</button></div>
 
             <button onclick="location.reload()" class="w-full py-8 text-slate-700 text-[10px] font-bold uppercase tracking-[0.3em]">Reset App</button>
         </div>
     </div>
 
     <script>
-        let appMode = 'rotation'; 
-        let matchType = 'doubles'; // singles or doubles
-        let teamSize = 2;
-        let courts = []; 
-        let waitingQueue = [];
-        let tournamentPhase = 'qualifying';
-        let tournamentWinners = [];
-        let tournamentLosers = [];
+        let appMode = 'rotation', matchType = 'doubles', teamSize = 2;
+        let courts = [], waitingQueue = [], history = [];
+        let tournamentPhase = 'qualifying', tournamentWinners = [], tournamentLosers = [];
+        let pendingRotation = null;
 
-        function setMatchType(type) {
-            matchType = type;
-            teamSize = (type === 'singles') ? 1 : 2;
-            document.getElementById('type-singles').className = type === 'singles' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
-            document.getElementById('type-doubles').className = type === 'doubles' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
-        }
-
-        function setMode(mode) {
-            appMode = mode;
-            document.getElementById('mode-rotation').className = mode === 'rotation' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
-            document.getElementById('mode-tournament').className = mode === 'tournament' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
+        function setMatchType(t) { matchType = t; teamSize = (t === 'singles') ? 1 : 2; updateSetupUI(); }
+        function setMode(m) { appMode = m; updateSetupUI(); }
+        function updateSetupUI() {
+            document.getElementById('type-singles').className = matchType === 'singles' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
+            document.getElementById('type-doubles').className = matchType === 'doubles' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
+            document.getElementById('mode-rotation').className = appMode === 'rotation' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
+            document.getElementById('mode-tournament').className = appMode === 'tournament' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
         }
 
         function initGame() {
             const input = document.getElementById('playerInput').value;
             let players = input.split('\n').map(n => n.trim()).filter(n => n !== "");
-            const playersPerCourt = teamSize * 2;
-            
-            if (players.length < playersPerCourt) { alert(`Need at least ${playersPerCourt} players for ${matchType}.`); return; }
-            if (appMode === 'tournament' && players.length % playersPerCourt !== 0) { alert(`Tournament requires players to be a multiple of ${playersPerCourt}.`); return; }
-
+            const perCourt = teamSize * 2;
+            if (players.length < perCourt) return alert(`Need ${perCourt} players.`);
             players.sort(() => Math.random() - 0.5);
             document.getElementById('setupScreen').classList.add('hidden');
             document.getElementById('matchScreen').classList.remove('hidden');
-            document.getElementById('matchLabel').innerText = matchType === 'singles' ? '1v1 SINGLES' : '2v2 DOUBLES';
-
             if (appMode === 'rotation') {
-                const numCourts = Math.floor(players.length / playersPerCourt);
-                for (let i = 0; i < numCourts; i++) {
-                    const s = i * playersPerCourt;
-                    courts.push({ 
-                        teamA: players.slice(s, s + teamSize), 
-                        teamB: players.slice(s + teamSize, s + playersPerCourt) 
-                    });
+                const num = Math.floor(players.length / perCourt);
+                for (let i = 0; i < num; i++) {
+                    const s = i * perCourt;
+                    courts.push({ teamA: players.slice(s, s + teamSize), teamB: players.slice(s + teamSize, s + perCourt), winner: null });
                 }
-                waitingQueue = players.slice(numCourts * playersPerCourt);
+                waitingQueue = players.slice(num * perCourt);
                 document.getElementById('rotationMeta').classList.remove('hidden');
-            } else {
-                setupTournamentCourts(players);
-                document.getElementById('actionArea').classList.remove('hidden');
-            }
+            } else { setupTournamentCourts(players); document.getElementById('actionArea').classList.remove('hidden'); }
             render();
         }
 
-        function setupTournamentCourts(playerArray) {
-            const playersPerCourt = teamSize * 2;
-            const numCourts = Math.floor(playerArray.length / playersPerCourt);
-            courts = [];
-            for (let i = 0; i < numCourts; i++) {
-                const s = i * playersPerCourt;
-                courts.push({ 
-                    id: i, 
-                    teamA: playerArray.slice(s, s + teamSize), 
-                    teamB: playerArray.slice(s + teamSize, s + playersPerCourt), 
-                    winner: null 
-                });
-            }
-        }
-
-        function handleWin(courtIdx, winnerKey) {
+        function handleWin(idx, key) {
             if (appMode === 'rotation') {
-                const loserKey = winnerKey === 'teamA' ? 'teamB' : 'teamA';
-                if (waitingQueue.length >= teamSize) {
-                    waitingQueue.push(...courts[courtIdx][loserKey]);
-                    courts[courtIdx][loserKey] = waitingQueue.splice(0, teamSize);
-                } else {
-                    let s = [...courts[courtIdx].teamA, ...courts[courtIdx].teamB].sort(() => Math.random() - 0.5);
-                    courts[courtIdx].teamA = s.slice(0, teamSize); 
-                    courts[courtIdx].teamB = s.slice(teamSize);
-                }
-                render();
+                courts[idx].winner = key;
+                pendingRotation = { idx, key };
+                document.getElementById('scoreArea').classList.remove('hidden');
+                document.getElementById('scoreArea').scrollIntoView({ behavior: 'smooth' });
             } else {
                 if (tournamentPhase === 'complete') return;
-                courts[courtIdx].winner = winnerKey;
-                const allFinished = courts.every(c => c.winner !== null);
-                document.getElementById('nextPhaseBtn').style.opacity = allFinished ? "1" : "0.5";
-                render();
+                courts[idx].winner = key;
+                document.getElementById('nextPhaseBtn').style.opacity = courts.every(c => c.winner) ? "1" : "0.5";
             }
-        }
-
-        function progressTournament() {
-            if (!courts.every(c => c.winner !== null)) return;
-            tournamentWinners = []; tournamentLosers = [];
-            courts.forEach(c => {
-                if (c.winner === 'teamA') { tournamentWinners.push(c.teamA); tournamentLosers.push(c.teamB); }
-                else { tournamentWinners.push(c.teamB); tournamentLosers.push(c.teamA); }
-            });
-
-            if (tournamentPhase === 'qualifying') {
-                tournamentPhase = 'finals';
-                document.getElementById('screenTitle').innerText = "FINALS ROUND";
-                courts = [{ id: 0, teamA: tournamentWinners[0], teamB: tournamentWinners[1] || tournamentWinners[0], winner: null }];
-                if (tournamentLosers.length >= 2) {
-                    courts.push({ id: 1, teamA: tournamentLosers[0], teamB: tournamentLosers[1], winner: null });
-                }
-                document.getElementById('nextPhaseBtn').innerText = "Finish Tournament";
-            } else { endTournament(); }
             render();
         }
 
-        function endTournament() {
-            tournamentPhase = 'complete';
-            document.getElementById('screenTitle').innerText = "FINAL STANDINGS";
-            document.getElementById('actionArea').classList.add('hidden');
-            document.getElementById('tournamentResults').classList.remove('hidden');
-            const gold = courts[0].winner === 'teamA' ? courts[0].teamA : courts[0].teamB;
-            const silver = courts[0].winner === 'teamA' ? courts[0].teamB : courts[0].teamA;
-            const bronze = courts[1] && courts[1].winner ? (courts[1].winner === 'teamA' ? courts[1].teamA : courts[1].teamB) : "N/A";
-            document.getElementById('podium').innerHTML = `
-                <div class="bg-amber-500/10 p-5 rounded-3xl border border-amber-500/30 text-center"><span class="text-amber-500 text-[10px] font-bold uppercase tracking-widest">Champion</span><div class="text-xl font-black">${gold.join(' & ')}</div></div>
-                <div class="bg-slate-400/10 p-5 rounded-3xl border border-slate-400/30 text-center"><span class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Runner Up</span><div class="text-xl font-black">${silver.join(' & ')}</div></div>
-                ${bronze !== "N/A" ? `<div class="bg-orange-700/10 p-5 rounded-3xl border border-orange-700/30 text-center"><span class="text-orange-700 text-[10px] font-bold uppercase tracking-widest">3rd Place</span><div class="text-xl font-black">${bronze.join(' & ')}</div></div>` : ''}
-            `;
+        function cancelScore() { if(pendingRotation) courts[pendingRotation.idx].winner = null; pendingRotation = null; document.getElementById('scoreArea').classList.add('hidden'); render(); }
+
+        function confirmRotation() {
+            const sA = document.getElementById('scoreA').value || '0', sB = document.getElementById('scoreB').value || '0';
+            const { idx, key } = pendingRotation;
+            const court = courts[idx];
+            history.unshift({ teamA: [...court.teamA], teamB: [...court.teamB], score: `${sA} - ${sB}`, winner: key === 'teamA' ? court.teamA.join(' & ') : court.teamB.join(' & ') });
+            const loserKey = key === 'teamA' ? 'teamB' : 'teamA';
+            if (waitingQueue.length >= teamSize) {
+                waitingQueue.push(...court[loserKey]);
+                court[loserKey] = waitingQueue.splice(0, teamSize);
+            } else {
+                let s = [...court.teamA, ...court.teamB].sort(() => Math.random() - 0.5);
+                court.teamA = s.slice(0, teamSize); court.teamB = s.slice(teamSize);
+            }
+            court.winner = null; pendingRotation = null;
+            document.getElementById('scoreA').value = ''; document.getElementById('scoreB').value = '';
+            document.getElementById('scoreArea').classList.add('hidden');
+            render();
+        }
+
+        function setupTournamentCourts(p) {
+            const per = teamSize * 2, num = Math.floor(p.length / per);
+            for (let i = 0; i < num; i++) {
+                const s = i * per;
+                courts.push({ id: i, teamA: p.slice(s, s + teamSize), teamB: p.slice(s + teamSize, s + per), winner: null });
+            }
         }
 
         function manualSwap() {
-            if (waitingQueue.length === 0) return;
-            let solo = waitingQueue.shift();
-            let active = courts[courts.length - 1].teamB.pop();
-            courts[courts.length - 1].teamB.push(solo);
-            waitingQueue.unshift(active);
+            // Updated Logic: Solo player (back of queue) swaps with the person at the VERY FRONT of the queue.
+            // This pushes the solo player into the next challenger team.
+            if (waitingQueue.length < 2) return;
+            const solo = waitingQueue.pop();
+            const challenger = waitingQueue.shift();
+            waitingQueue.unshift(solo);
+            waitingQueue.push(challenger);
             render();
         }
 
         function render() {
-            const container = document.getElementById('courtsContainer');
-            container.innerHTML = '';
+            const cont = document.getElementById('courtsContainer');
+            cont.innerHTML = '';
             if (tournamentPhase === 'complete') return;
-
-            courts.forEach((court, idx) => {
-                const label = appMode === 'tournament' && tournamentPhase === 'finals' ? (idx === 0 ? 'Gold Match' : 'Bronze Match') : `Court ${idx + 1}`;
-                const isA = court.winner === 'teamA';
-                const isB = court.winner === 'teamB';
-                const div = document.createElement('div');
-                div.className = "space-y-3 fade-in";
-                div.innerHTML = `
-                    <div class="text-center text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">${label}</div>
-                    <button onclick="handleWin(${idx}, 'teamA')" class="w-full bg-slate-900 p-6 rounded-[2rem] border-2 transition-all text-center ${isA ? 'winner-glow' : 'border-slate-800'}">
-                        <div class="text-xl font-bold text-white">${court.teamA.join(' & ')}</div>
-                    </button>
+            courts.forEach((c, i) => {
+                const isA = c.winner === 'teamA', isB = c.winner === 'teamB';
+                const d = document.createElement('div');
+                d.className = "space-y-3 fade-in";
+                d.innerHTML = `<div class="text-center text-[10px] font-black text-slate-700 uppercase tracking-widest">Court ${i+1}</div>
+                    <button onclick="handleWin(${i}, 'teamA')" class="w-full bg-slate-900 p-6 rounded-[2rem] border-2 transition-all ${isA ? 'winner-glow' : 'border-slate-800'}"><div class="font-bold text-white text-lg">${c.teamA.join(' & ')}</div></button>
                     <div class="text-center text-slate-800 font-black italic text-[10px]">VS</div>
-                    <button onclick="handleWin(${idx}, 'teamB')" class="w-full bg-slate-900 p-6 rounded-[2rem] border-2 transition-all text-center ${isB ? 'winner-glow' : 'border-slate-800'}">
-                        <div class="text-xl font-bold text-white">${court.teamB.join(' & ')}</div>
-                    </button>
-                `;
-                container.appendChild(div);
+                    <button onclick="handleWin(${i}, 'teamB')" class="w-full bg-slate-900 p-6 rounded-[2rem] border-2 transition-all ${isB ? 'winner-glow' : 'border-slate-800'}"><div class="font-bold text-white text-lg">${c.teamB.join(' & ')}</div></button>`;
+                cont.appendChild(d);
             });
-
             if (appMode === 'rotation') {
+                const hList = document.getElementById('historyList');
+                document.getElementById('historySection').classList.toggle('hidden', history.length === 0);
+                hList.innerHTML = history.map(h => `<div class="bg-slate-900/50 border border-slate-800 p-3 rounded-2xl text-[11px]"><div class="flex justify-between text-slate-500 mb-1"><span>Winner: <b class="text-emerald-500">${h.winner}</b></span><span class="font-mono">${h.score}</span></div><div class="text-slate-400 truncate">${h.teamA.join(' & ')} vs ${h.teamB.join(' & ')}</div></div>`).join('');
                 const wList = document.getElementById('waitingTeamsList');
-                const soloName = document.getElementById('soloName');
                 wList.innerHTML = '';
                 let temp = [...waitingQueue];
                 while (temp.length >= teamSize) {
-                    const t = temp.splice(0, teamSize);
-                    const d = document.createElement('div');
-                    d.className = "bg-slate-900 border border-slate-800 p-4 rounded-2xl text-slate-400 font-bold text-center text-sm";
-                    d.innerText = t.join(' & ');
-                    wList.appendChild(d);
+                    const t = temp.splice(0, teamSize), div = document.createElement('div');
+                    div.className = "bg-slate-900 border border-slate-800 p-3 rounded-xl text-slate-300 font-bold text-center text-sm";
+                    div.innerText = t.join(' & '); wList.appendChild(div);
                 }
                 document.getElementById('waitingTeamsSection').classList.toggle('hidden', wList.children.length === 0);
-                if (temp.length > 0) { document.getElementById('soloSection').classList.remove('hidden'); soloName.innerText = temp.join(', '); }
-                else { document.getElementById('soloSection').classList.add('hidden'); }
+                if (temp.length > 0) { document.getElementById('soloSection').classList.remove('hidden'); document.getElementById('soloName').innerText = temp.join(', '); }
+                else document.getElementById('soloSection').classList.add('hidden');
             }
             lucide.createIcons();
         }
