@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Court Rotator v1.0.6</title>
+    <title>Court Rotator v1.0.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -11,6 +11,10 @@
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .winner-glow { border-color: #22c55e !important; background-color: #064e3b !important; transform: scale(1.02); }
         .mode-btn-active { background-color: #4f46e5 !important; border-color: #6366f1 !important; color: white !important; }
+        .player-slot { transition: all 0.2s ease; border: 2px dashed #334155; }
+        .slot-filled { border-style: solid; border-color: #475569; background-color: #0f172a; }
+        .slot-empty { background-color: rgba(255, 255, 255, 0.03); }
+        .draft-active { border-color: #6366f1 !important; background-color: #1e1b4b !important; box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -20,32 +24,24 @@
         
         <div id="setupScreen" class="space-y-6">
             <div class="text-center">
-                <h1 class="text-3xl font-black text-white italic tracking-tighter uppercase">COURT ROTATOR <span class="text-xs align-top text-indigo-500 ml-1">v1.0.6</span></h1>
-                <p class="text-slate-500 text-xs mt-1">Version 1.0.6 • Advanced Bench Swapping</p>
+                <h1 class="text-3xl font-black text-white italic tracking-tighter uppercase">COURT ROTATOR <span class="text-xs align-top text-indigo-500 ml-1">v1.0.8</span></h1>
+                <p class="text-slate-500 text-xs mt-1">Version 1.0.8 • Highlighted History</p>
             </div>
 
             <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-6">
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold text-slate-500 uppercase px-1">Match Type</label>
                     <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-2xl border border-slate-800">
-                        <button onclick="setMatchType('singles')" id="type-singles" class="py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2 text-slate-500">
-                            <i data-lucide="user" size="14"></i> Singles
-                        </button>
-                        <button onclick="setMatchType('doubles')" id="type-doubles" class="mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2">
-                            <i data-lucide="users" size="14"></i> Doubles
-                        </button>
+                        <button onclick="setMatchType('singles')" id="type-singles" class="py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2 text-slate-500">Singles</button>
+                        <button onclick="setMatchType('doubles')" id="type-doubles" class="mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2">Doubles</button>
                     </div>
                 </div>
 
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold text-slate-500 uppercase px-1">Game Mode</label>
                     <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-2xl border border-slate-800">
-                        <button onclick="setMode('rotation')" id="mode-rotation" class="mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2">
-                            <i data-lucide="refresh-cw" size="14"></i> Rotation
-                        </button>
-                        <button onclick="setMode('tournament')" id="mode-tournament" class="py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2">
-                            <i data-lucide="trophy" size="14"></i> Tournament
-                        </button>
+                        <button onclick="setMode('rotation')" id="mode-rotation" class="mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2">Rotation</button>
+                        <button onclick="setMode('tournament')" id="mode-tournament" class="py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2">Tournament</button>
                     </div>
                 </div>
 
@@ -55,9 +51,22 @@
         </div>
 
         <div id="matchScreen" class="hidden space-y-6 fade-in">
-            <div class="text-center">
-                <h2 id="screenTitle" class="text-xl font-black text-white italic tracking-tighter inline-block uppercase italic">ROTATION MODE</h2>
-                <span id="matchLabel" class="block text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">2v2 DOUBLES</span>
+            <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                <div>
+                    <h2 id="screenTitle" class="text-sm font-black text-white italic uppercase tracking-wider">ROTATION MODE</h2>
+                    <span id="matchLabel" class="block text-[9px] font-bold text-indigo-500 uppercase tracking-widest mt-1">2v2 DOUBLES</span>
+                </div>
+                <button onclick="toggleEditMode()" id="editBtn" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all">
+                    <i data-lucide="edit-3" size="14" id="editIcon"></i> <span id="editText">EDIT TEAMS</span>
+                </button>
+            </div>
+
+            <div id="draftPoolArea" class="hidden bg-indigo-950/30 border border-indigo-500/50 p-4 rounded-2xl space-y-3 fade-in">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-indigo-400 uppercase">Drafting Pool</span>
+                    <span id="draftWarning" class="text-[10px] font-bold text-rose-500 animate-pulse hidden uppercase">Fill all court slots!</span>
+                </div>
+                <div id="draftPool" class="flex flex-wrap gap-2 min-h-[40px]"></div>
             </div>
 
             <div id="courtsContainer" class="space-y-8"></div>
@@ -68,26 +77,17 @@
                     <button onclick="cancelScore()" class="text-slate-500 hover:text-white"><i data-lucide="x" size="16"></i></button>
                 </div>
                 <div class="flex items-center gap-4">
-                    <input type="number" id="scoreA" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold" placeholder="Team A">
+                    <input type="number" id="scoreA" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-white" placeholder="Team A">
                     <span class="font-black text-slate-700">-</span>
-                    <input type="number" id="scoreB" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold" placeholder="Team B">
+                    <input type="number" id="scoreB" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-white" placeholder="Team B">
                 </div>
                 <button onclick="confirmRotation()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold text-sm">Submit & Rotate</button>
             </div>
 
             <div id="rotationMeta" class="space-y-6 pt-6 border-t border-slate-900">
-                <div id="waitingTeamsSection" class="hidden">
-                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 mb-2 text-center">Next Challenger(s)</h3>
-                    <div id="waitingTeamsList" class="space-y-2"></div>
-                </div>
-                <div id="soloSection" class="hidden">
-                    <div class="bg-amber-500/5 border border-amber-500/20 p-4 rounded-3xl flex items-center justify-between">
-                        <div>
-                            <span id="soloName" class="font-bold text-amber-500 text-lg"></span>
-                            <p class="text-[9px] text-amber-600 uppercase font-bold tracking-tighter">Bench (Solo)</p>
-                        </div>
-                        <button onclick="manualSwap()" class="bg-amber-500 text-black px-4 py-2 rounded-xl text-xs font-black active:scale-90 shadow-lg shadow-amber-500/20">SWAP INTO TEAM</button>
-                    </div>
+                <div id="waitingSection" class="space-y-4">
+                   <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 mb-2 text-center">Bench / Challengers</h3>
+                   <div id="waitingList" class="flex flex-wrap gap-2 justify-center min-h-[40px]"></div>
                 </div>
                 <div id="historySection" class="hidden space-y-3">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 text-center">Match History</h3>
@@ -103,10 +103,10 @@
     </div>
 
     <script>
-        let appMode = 'rotation', matchType = 'doubles', teamSize = 2;
-        let courts = [], waitingQueue = [], history = [];
+        let appMode = 'rotation', matchType = 'doubles', teamSize = 2, editMode = false;
+        let courts = [], waitingQueue = [], history = [], draftPool = [];
         let tournamentPhase = 'qualifying', tournamentWinners = [], tournamentLosers = [];
-        let pendingRotation = null;
+        let pendingRotation = null, selectedFromPool = null;
 
         function setMatchType(t) { matchType = t; teamSize = (t === 'singles') ? 1 : 2; updateSetupUI(); }
         function setMode(m) { appMode = m; updateSetupUI(); }
@@ -125,15 +125,65 @@
             players.sort(() => Math.random() - 0.5);
             document.getElementById('setupScreen').classList.add('hidden');
             document.getElementById('matchScreen').classList.remove('hidden');
-            if (appMode === 'rotation') {
-                const num = Math.floor(players.length / perCourt);
-                for (let i = 0; i < num; i++) {
-                    const s = i * perCourt;
-                    courts.push({ teamA: players.slice(s, s + teamSize), teamB: players.slice(s + teamSize, s + perCourt), winner: null });
+            const num = Math.floor(players.length / perCourt);
+            for (let i = 0; i < num; i++) {
+                const s = i * perCourt;
+                courts.push({ teamA: players.slice(s, s + teamSize), teamB: players.slice(s + teamSize, s + perCourt), winner: null });
+            }
+            waitingQueue = players.slice(num * perCourt);
+            render();
+        }
+
+        function toggleEditMode() {
+            if (editMode) {
+                const incomplete = courts.some(c => c.teamA.length < teamSize || c.teamB.length < teamSize);
+                if (incomplete) {
+                    document.getElementById('draftWarning').classList.remove('hidden');
+                    return;
                 }
-                waitingQueue = players.slice(num * perCourt);
-                document.getElementById('rotationMeta').classList.remove('hidden');
-            } else { setupTournamentCourts(players); document.getElementById('actionArea').classList.remove('hidden'); }
+                editMode = false;
+                selectedFromPool = null;
+                document.getElementById('draftPoolArea').classList.add('hidden');
+                document.getElementById('editText').innerText = "EDIT TEAMS";
+                document.getElementById('editBtn').classList.replace('bg-emerald-600', 'bg-slate-800');
+            } else {
+                editMode = true;
+                document.getElementById('draftPoolArea').classList.remove('hidden');
+                document.getElementById('editText').innerText = "SAVE CHANGES";
+                document.getElementById('editBtn').classList.replace('bg-slate-800', 'bg-emerald-600');
+                document.getElementById('draftWarning').classList.add('hidden');
+            }
+            render();
+        }
+
+        function handleSlotClick(loc, teamKey, courtIdx, slotIdx) {
+            if (!editMode) {
+                if (loc === 'court') handleWin(courtIdx, teamKey);
+                return;
+            }
+            if (selectedFromPool === null) {
+                let name = "";
+                if (loc === 'court') {
+                    if (courts[courtIdx][teamKey][slotIdx]) {
+                        name = courts[courtIdx][teamKey].splice(slotIdx, 1)[0];
+                    }
+                } else {
+                    name = waitingQueue.splice(slotIdx, 1)[0];
+                }
+                if (name) draftPool.push(name);
+            } else {
+                const name = draftPool.splice(selectedFromPool, 1)[0];
+                if (loc === 'court') {
+                    if (courts[courtIdx][teamKey].length < teamSize) {
+                        courts[courtIdx][teamKey].push(name);
+                    } else {
+                        draftPool.push(name);
+                    }
+                } else {
+                    waitingQueue.push(name);
+                }
+                selectedFromPool = null;
+            }
             render();
         }
 
@@ -142,7 +192,6 @@
                 courts[idx].winner = key;
                 pendingRotation = { idx, key };
                 document.getElementById('scoreArea').classList.remove('hidden');
-                document.getElementById('scoreArea').scrollIntoView({ behavior: 'smooth' });
             } else {
                 if (tournamentPhase === 'complete') return;
                 courts[idx].winner = key;
@@ -151,13 +200,19 @@
             render();
         }
 
-        function cancelScore() { if(pendingRotation) courts[pendingRotation.idx].winner = null; pendingRotation = null; document.getElementById('scoreArea').classList.add('hidden'); render(); }
-
         function confirmRotation() {
             const sA = document.getElementById('scoreA').value || '0', sB = document.getElementById('scoreB').value || '0';
             const { idx, key } = pendingRotation;
             const court = courts[idx];
-            history.unshift({ teamA: [...court.teamA], teamB: [...court.teamB], score: `${sA} - ${sB}`, winner: key === 'teamA' ? court.teamA.join(' & ') : court.teamB.join(' & ') });
+            
+            // Record History
+            history.unshift({
+                teamA: [...court.teamA], 
+                teamB: [...court.teamB], 
+                score: `${sA}-${sB}`, 
+                winnerKey: key 
+            });
+
             const loserKey = key === 'teamA' ? 'teamB' : 'teamA';
             if (waitingQueue.length >= teamSize) {
                 waitingQueue.push(...court[loserKey]);
@@ -172,56 +227,86 @@
             render();
         }
 
-        function setupTournamentCourts(p) {
-            const per = teamSize * 2, num = Math.floor(p.length / per);
-            for (let i = 0; i < num; i++) {
-                const s = i * per;
-                courts.push({ id: i, teamA: p.slice(s, s + teamSize), teamB: p.slice(s + teamSize, s + per), winner: null });
-            }
-        }
-
-        function manualSwap() {
-            // Updated Logic: Solo player (back of queue) swaps with the person at the VERY FRONT of the queue.
-            // This pushes the solo player into the next challenger team.
-            if (waitingQueue.length < 2) return;
-            const solo = waitingQueue.pop();
-            const challenger = waitingQueue.shift();
-            waitingQueue.unshift(solo);
-            waitingQueue.push(challenger);
-            render();
-        }
+        function cancelScore() { if(pendingRotation) courts[pendingRotation.idx].winner = null; pendingRotation = null; document.getElementById('scoreArea').classList.add('hidden'); render(); }
 
         function render() {
             const cont = document.getElementById('courtsContainer');
             cont.innerHTML = '';
-            if (tournamentPhase === 'complete') return;
+            
             courts.forEach((c, i) => {
-                const isA = c.winner === 'teamA', isB = c.winner === 'teamB';
-                const d = document.createElement('div');
-                d.className = "space-y-3 fade-in";
-                d.innerHTML = `<div class="text-center text-[10px] font-black text-slate-700 uppercase tracking-widest">Court ${i+1}</div>
-                    <button onclick="handleWin(${i}, 'teamA')" class="w-full bg-slate-900 p-6 rounded-[2rem] border-2 transition-all ${isA ? 'winner-glow' : 'border-slate-800'}"><div class="font-bold text-white text-lg">${c.teamA.join(' & ')}</div></button>
-                    <div class="text-center text-slate-800 font-black italic text-[10px]">VS</div>
-                    <button onclick="handleWin(${i}, 'teamB')" class="w-full bg-slate-900 p-6 rounded-[2rem] border-2 transition-all ${isB ? 'winner-glow' : 'border-slate-800'}"><div class="font-bold text-white text-lg">${c.teamB.join(' & ')}</div></button>`;
-                cont.appendChild(d);
+                const div = document.createElement('div');
+                div.className = "space-y-3 fade-in";
+                div.innerHTML = `
+                    <div class="text-center text-[10px] font-black text-slate-700 uppercase tracking-widest">Court ${i+1}</div>
+                    <div class="space-y-2">
+                        <div class="flex flex-col gap-2 p-4 bg-slate-900 rounded-[2rem] border-2 transition-all ${c.winner === 'teamA' ? 'winner-glow' : 'border-slate-800'}">
+                            <span class="text-[9px] font-bold text-indigo-500 uppercase text-center">Team A</span>
+                            <div class="flex justify-center gap-2">
+                                ${Array.from({length: teamSize}).map((_, si) => {
+                                    const p = c.teamA[si];
+                                    return `<div onclick="handleSlotClick('court', 'teamA', ${i}, ${si})" 
+                                    class="player-slot px-4 py-2 rounded-xl font-bold text-sm min-w-[80px] text-center ${p ? 'slot-filled' : 'slot-empty'} ${editMode && selectedFromPool !== null && !p ? 'draft-active' : ''}">
+                                    ${p || (editMode ? 'PLACE' : '...')}</div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                        <div class="text-center text-slate-800 font-black italic text-[10px]">VS</div>
+                        <div class="flex flex-col gap-2 p-4 bg-slate-900 rounded-[2rem] border-2 transition-all ${c.winner === 'teamB' ? 'winner-glow' : 'border-slate-800'}">
+                            <span class="text-[9px] font-bold text-rose-500 uppercase text-center">Team B</span>
+                            <div class="flex justify-center gap-2">
+                                ${Array.from({length: teamSize}).map((_, si) => {
+                                    const p = c.teamB[si];
+                                    return `<div onclick="handleSlotClick('court', 'teamB', ${i}, ${si})" 
+                                    class="player-slot px-4 py-2 rounded-xl font-bold text-sm min-w-[80px] text-center ${p ? 'slot-filled' : 'slot-empty'} ${editMode && selectedFromPool !== null && !p ? 'draft-active' : ''}">
+                                    ${p || (editMode ? 'PLACE' : '...')}</div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>`;
+                cont.appendChild(div);
             });
-            if (appMode === 'rotation') {
-                const hList = document.getElementById('historyList');
-                document.getElementById('historySection').classList.toggle('hidden', history.length === 0);
-                hList.innerHTML = history.map(h => `<div class="bg-slate-900/50 border border-slate-800 p-3 rounded-2xl text-[11px]"><div class="flex justify-between text-slate-500 mb-1"><span>Winner: <b class="text-emerald-500">${h.winner}</b></span><span class="font-mono">${h.score}</span></div><div class="text-slate-400 truncate">${h.teamA.join(' & ')} vs ${h.teamB.join(' & ')}</div></div>`).join('');
-                const wList = document.getElementById('waitingTeamsList');
-                wList.innerHTML = '';
-                let temp = [...waitingQueue];
-                while (temp.length >= teamSize) {
-                    const t = temp.splice(0, teamSize), div = document.createElement('div');
-                    div.className = "bg-slate-900 border border-slate-800 p-3 rounded-xl text-slate-300 font-bold text-center text-sm";
-                    div.innerText = t.join(' & '); wList.appendChild(div);
-                }
-                document.getElementById('waitingTeamsSection').classList.toggle('hidden', wList.children.length === 0);
-                if (temp.length > 0) { document.getElementById('soloSection').classList.remove('hidden'); document.getElementById('soloName').innerText = temp.join(', '); }
-                else document.getElementById('soloSection').classList.add('hidden');
-            }
+
+            const dp = document.getElementById('draftPool');
+            dp.innerHTML = draftPool.map((p, i) => `<div onclick="selectedFromPool = ${i}; render();" class="px-4 py-2 bg-indigo-600 rounded-xl font-bold text-sm border-2 ${selectedFromPool === i ? 'border-white' : 'border-transparent'}">${p}</div>`).join('');
+
+            const wl = document.getElementById('waitingList');
+            wl.innerHTML = waitingQueue.map((p, i) => `<div onclick="handleSlotClick('waiting', null, null, ${i})" class="px-4 py-2 bg-slate-800 rounded-xl font-bold text-sm slot-filled">${p}</div>`).join('');
+            if (editMode) wl.innerHTML += `<div onclick="handleSlotClick('waiting')" class="px-4 py-2 border-2 border-dashed border-slate-700 rounded-xl text-xs text-slate-500 font-bold">+ BENCH</div>`;
+
+            const hList = document.getElementById('historyList');
+            document.getElementById('historySection').classList.toggle('hidden', history.length === 0);
+            hList.innerHTML = history.map(h => `
+                <div class="bg-slate-900/50 border border-slate-800 p-3 rounded-2xl text-[10px] flex justify-between items-center">
+                    <div class="flex flex-col flex-1">
+                        <span class="${h.winnerKey === 'teamA' ? 'text-emerald-500 font-bold' : 'text-slate-400'}">${h.teamA.join(' & ')}</span>
+                        <span class="text-slate-600 italic py-0.5">vs</span>
+                        <span class="${h.winnerKey === 'teamB' ? 'text-emerald-500 font-bold' : 'text-slate-400'}">${h.teamB.join(' & ')}</span>
+                    </div>
+                    <span class="font-bold text-indigo-400 bg-slate-950 px-2 py-1 rounded ml-2">${h.score}</span>
+                </div>
+            `).join('');
+            
             lucide.createIcons();
+        }
+
+        function progressTournament() {
+            if (!courts.every(c => c.winner !== null)) return;
+            let wins = [], loss = [];
+            courts.forEach(c => {
+                if (c.winner === 'teamA') { wins.push(c.teamA); loss.push(c.teamB); }
+                else { wins.push(c.teamB); loss.push(c.teamA); }
+            });
+            if (tournamentPhase === 'qualifying') {
+                tournamentPhase = 'finals';
+                document.getElementById('screenTitle').innerText = "FINALS ROUND";
+                courts = [{ teamA: wins[0], teamB: wins[1] || wins[0], winner: null }];
+                if (loss.length >= 2) courts.push({ teamA: loss[0], teamB: loss[1], winner: null });
+                document.getElementById('nextPhaseBtn').innerText = "Finish Tournament";
+            } else {
+                tournamentPhase = 'complete';
+                document.getElementById('matchScreen').innerHTML = '<div class="text-center py-20"><h1 class="text-4xl font-black italic">TOURNAMENT OVER</h1><button onclick="location.reload()" class="mt-8 text-indigo-400 font-bold uppercase tracking-widest">Reset App</button></div>';
+            }
+            render();
         }
     </script>
 </body>
