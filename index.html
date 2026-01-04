@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2v2 Court Rotation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .winner-glow { border-color: #22c55e !important; background-color: #064e3b !important; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100 pb-12">
+    <div id="app" class="max-w-md mx-auto px-4 pt-8">
+        
+        <div id="setupScreen" class="space-y-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-black text-white italic tracking-tighter">COURT ROTATOR</h1>
+                <p class="text-slate-400">2v2 Winner Stays • Manual Rotation</p>
+            </div>
+            <div class="bg-slate-800 p-6 rounded-3xl border border-slate-700">
+                <textarea id="playerInput" rows="6" class="w-full p-4 bg-slate-900 border border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-white" placeholder="Enter player names..."></textarea>
+                <button onclick="startTournament()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20">
+                    Start Session
+                </button>
+            </div>
+        </div>
+
+        <div id="matchScreen" class="hidden space-y-6">
+            <div class="text-center">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Match</span>
+            </div>
+
+            <div class="space-y-4">
+                <button onclick="handleWin(0)" id="teamCard0" class="w-full bg-slate-800 p-6 rounded-3xl border-2 border-slate-700 transition-all text-center">
+                    <span class="text-[10px] font-bold text-indigo-400 uppercase">Team A</span>
+                    <div id="team0Names" class="text-xl font-bold mt-1 text-white"></div>
+                </button>
+
+                <div class="flex items-center gap-4 py-1">
+                    <div class="h-[1px] bg-slate-700 flex-1"></div>
+                    <div class="text-slate-500 font-black italic text-xs">VS</div>
+                    <div class="h-[1px] bg-slate-700 flex-1"></div>
+                </div>
+
+                <button onclick="handleWin(1)" id="teamCard1" class="w-full bg-slate-800 p-6 rounded-3xl border-2 border-slate-700 transition-all text-center">
+                    <span class="text-[10px] font-bold text-rose-400 uppercase">Team B</span>
+                    <div id="team1Names" class="text-xl font-bold mt-1 text-white"></div>
+                </button>
+            </div>
+
+            <div class="space-y-4 pt-4">
+                <div id="waitingTeamsSection" class="hidden">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 px-2">Next Full Team(s)</h3>
+                    <div id="waitingTeamsList" class="space-y-2"></div>
+                </div>
+
+                <div id="soloSection" class="hidden">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 px-2">Solo Player (Next to join a team)</h3>
+                    <div class="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-center justify-between">
+                        <span id="soloName" class="font-bold text-amber-500 text-lg"></span>
+                        <i data-lucide="user" class="text-amber-500"></i>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-8 text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">Reset Tournament</button>
+        </div>
+    </div>
+
+    <script>
+        let courtTeams = [[], []]; 
+        let waitingQueue = []; // Single list of players waiting
+        let gamesPlayed = 0;
+
+        function startTournament() {
+            const input = document.getElementById('playerInput').value;
+            let players = input.split('\n').map(n => n.trim()).filter(n => n !== "");
+            
+            if (players.length < 5) {
+                alert("Please enter at least 5 players.");
+                return;
+            }
+
+            players.sort(() => Math.random() - 0.5);
+            
+            courtTeams[0] = [players[0], players[1]];
+            courtTeams[1] = [players[2], players[3]];
+            waitingQueue = players.slice(4);
+
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('matchScreen').classList.remove('hidden');
+            render();
+        }
+
+        function handleWin(winnerIndex) {
+            const loserIndex = winnerIndex === 0 ? 1 : 0;
+            const losers = courtTeams[loserIndex];
+
+            // 1. Losers go to the back of the total queue
+            waitingQueue.push(...losers);
+
+            // 2. New team comes from the front of the queue
+            // We take 2 people from the front to form the new challenging team
+            const newChallengers = [waitingQueue.shift(), waitingQueue.shift()];
+            courtTeams[loserIndex] = newChallengers;
+
+            // Visual feedback for winner
+            const winCard = document.getElementById(`teamCard${winnerIndex}`);
+            winCard.classList.add('winner-glow');
+            setTimeout(() => {
+                winCard.classList.remove('winner-glow');
+                render();
+            }, 400);
+        }
+
+        function render() {
+            document.getElementById('team0Names').innerText = courtTeams[0].join(' & ');
+            document.getElementById('team1Names').innerText = courtTeams[1].join(' & ');
+
+            const waitingTeamsList = document.getElementById('waitingTeamsList');
+            const soloName = document.getElementById('soloName');
+            const waitingTeamsSection = document.getElementById('waitingTeamsSection');
+            const soloSection = document.getElementById('soloSection');
+
+            waitingTeamsList.innerHTML = '';
+            
+            // Logic to display full teams and the remaining solo player
+            let tempQueue = [...waitingQueue];
+            let fullTeams = [];
+            
+            while (tempQueue.length >= 2) {
+                fullTeams.push([tempQueue.shift(), tempQueue.shift()]);
+            }
+
+            // Show full teams if they exist
+            if (fullTeams.length > 0) {
+                waitingTeamsSection.classList.remove('hidden');
+                fullTeams.forEach(team => {
+                    const div = document.createElement('div');
+                    div.className = "bg-slate-800/50 border border-slate-700 p-3 rounded-xl text-slate-300 font-medium";
+                    div.innerText = team.join(' & ');
+                    waitingTeamsList.appendChild(div);
+                });
+            } else {
+                waitingTeamsSection.classList.add('hidden');
+            }
+
+            // Show solo player if they exist
+            if (tempQueue.length === 1) {
+                soloSection.classList.remove('hidden');
+                soloName.innerText = tempQueue[0];
+            } else {
+                soloSection.classList.add('hidden');
+            }
+
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
