@@ -3,23 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Court Rotator v1.1.8</title>
+    <title>Court Rotator v1.1.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .screen { transition: opacity 0.3s ease, transform 0.3s ease; width: 100%; }
-        .hidden-screen { display: none !important; opacity: 0; transform: translateY(10px); }
-        .visible-screen { display: block !important; animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .winner-glow { border-color: #22c55e !important; background-color: #064e3b !important; transform: scale(1.02); }
-        .mode-btn-active { background-color: #4f46e5 !important; border-color: #6366f1 !important; color: white !important; }
-        .player-slot { transition: all 0.2s ease; border: 2px dashed #334155; }
-        .slot-filled { border-style: solid; border-color: #475569; background-color: #0f172a; }
-        .slot-empty { background-color: rgba(255, 255, 255, 0.03); }
-        .draft-active { border-color: #6366f1 !important; background-color: #1e1b4b !important; box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-slate-950 min-h-screen text-slate-100 pb-12">
     <div id="app" class="max-w-md mx-auto px-4 pt-8">
@@ -110,9 +97,9 @@
                     <button onclick="cancelScore()" class="text-slate-500"><i data-lucide="x" size="16"></i></button>
                 </div>
                 <div class="flex items-center gap-4">
-                    <input type="number" id="scoreA" min="0" oninput="this.value < 0 ? this.value = 0 : null" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-white" placeholder="A">
+                    <input type="number" id="scoreA" min="0" max="21" oninput="this.value = this.value < 0 ? 0 : (this.value > 21 ? 21 : this.value)" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-white" placeholder="A">
                     <span class="font-black text-slate-700">-</span>
-                    <input type="number" id="scoreB" min="0" oninput="this.value < 0 ? this.value = 0 : null" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-white" placeholder="B">
+                    <input type="number" id="scoreB" min="0" max="21" oninput="this.value = this.value < 0 ? 0 : (this.value > 21 ? 21 : this.value)" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-white" placeholder="B">
                 </div>
                 <button onclick="confirmRotation()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold text-sm">Save & Rotate</button>
             </div>
@@ -128,229 +115,6 @@
         </div>
     </div>
 
-    <script>
-        let appMode = 'rotation', matchType = 'doubles', teamSize = 2, editMode = false, rosterVisible = true;
-        let setupPlayers = [];
-        let courts = [], waitingQueue = [], historyData = [], draftPool = [];
-        let tournamentPhase = 'qualifying', pendingRotation = null, selectedFromPool = null;
-        let seedTapCount = 0;
-
-        function handleHiddenSeed() {
-            seedTapCount++;
-            if (seedTapCount >= 5) {
-                const seed = ["Ramiz", "Burak", "Reem", "Resad", "Elmas", "Zahra", "Dad", "Kambi"];
-                setupPlayers = [...seed];
-                updateRosterUI();
-                seedTapCount = 0;
-            }
-            // Optional: reset tap count if they take too long
-            clearTimeout(window.seedResetTimer);
-            window.seedResetTimer = setTimeout(() => { seedTapCount = 0; }, 2000);
-        }
-
-        function setMatchType(t) { matchType = t; teamSize = (t === 'singles') ? 1 : 2; updateSetupUI(); }
-        function setMode(m) { appMode = m; updateSetupUI(); }
-        function updateSetupUI() {
-            document.getElementById('type-singles').className = matchType === 'singles' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2 text-slate-500' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
-            document.getElementById('type-doubles').className = matchType === 'doubles' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
-            document.getElementById('mode-rotation').className = appMode === 'rotation' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
-            document.getElementById('mode-tournament').className = appMode === 'tournament' ? 'mode-btn-active py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2' : 'py-3 rounded-xl text-xs font-bold uppercase text-slate-500 transition-all flex items-center justify-center gap-2';
-        }
-
-        function addPlayerToList() {
-            const input = document.getElementById('playerNameInput');
-            const name = input.value.trim();
-            if (name) { setupPlayers.push(name); input.value = ''; updateRosterUI(); }
-        }
-
-        function removeSetupPlayer(idx) { setupPlayers.splice(idx, 1); updateRosterUI(); }
-
-        function toggleRosterView() {
-            rosterVisible = !rosterVisible;
-            document.getElementById('setupRosterList').classList.toggle('hidden', !rosterVisible);
-            document.getElementById('rosterToggleText').innerText = rosterVisible ? 'HIDE ROSTER' : 'VIEW ROSTER';
-            updateRosterUI();
-        }
-
-        function updateRosterUI() {
-            document.getElementById('playerCounter').innerText = setupPlayers.length;
-            document.getElementById('setupRosterList').innerHTML = setupPlayers.map((p, i) => `
-                <div class="flex justify-between items-center text-sm p-2 border-b border-slate-900 last:border-0">
-                    <span class="font-bold">${p}</span>
-                    <button onclick="removeSetupPlayer(${i})" class="text-rose-500"><i data-lucide="x" size="14"></i></button>
-                </div>`).join('');
-            lucide.createIcons();
-        }
-
-        function initGame() {
-            const perCourt = teamSize * 2;
-            if (setupPlayers.length < perCourt) return alert(`Need at least ${perCourt} players.`);
-            courts = []; waitingQueue = []; historyData = []; draftPool = [];
-            tournamentPhase = 'qualifying';
-            let players = [...setupPlayers];
-            players.sort(() => Math.random() - 0.5);
-            const num = Math.floor(players.length / perCourt);
-            for (let i = 0; i < num; i++) {
-                const s = i * perCourt;
-                courts.push({ teamA: players.slice(s, s + teamSize), teamB: players.slice(s + teamSize, s + perCourt), winner: null });
-            }
-            waitingQueue = players.slice(num * perCourt);
-            document.getElementById('screenTitle').innerText = appMode === 'rotation' ? "ROTATION MODE" : "QUALIFYING ROUND";
-            document.getElementById('matchLabel').innerText = matchType === 'singles' ? '1v1 SINGLES' : '2v2 DOUBLES';
-            document.getElementById('setupScreen').classList.replace('visible-screen', 'hidden-screen');
-            document.getElementById('matchScreen').classList.replace('hidden-screen', 'visible-screen');
-            if (appMode === 'tournament') {
-                document.getElementById('actionArea').classList.remove('hidden');
-                document.getElementById('rotationMeta').classList.add('hidden');
-            } else {
-                document.getElementById('actionArea').classList.add('hidden');
-                document.getElementById('rotationMeta').classList.remove('hidden');
-            }
-            render();
-        }
-
-        function resetToSetup() {
-            if (!confirm("Exit this session?")) return;
-            setupPlayers = []; updateRosterUI();
-            document.getElementById('matchScreen').classList.replace('visible-screen', 'hidden-screen');
-            document.getElementById('setupScreen').classList.replace('hidden-screen', 'visible-screen');
-            document.getElementById('scoreArea').classList.add('hidden');
-            document.getElementById('tournamentResults').classList.add('hidden');
-            editMode = false;
-        }
-
-        function toggleEditMode() {
-            if (editMode) {
-                if (courts.some(c => c.teamA.length < teamSize || c.teamB.length < teamSize)) {
-                    document.getElementById('draftWarning').classList.remove('hidden'); return;
-                }
-                editMode = false; selectedFromPool = null;
-                document.getElementById('draftPoolArea').classList.add('hidden');
-                document.getElementById('editText').innerText = "EDIT TEAMS";
-                document.getElementById('editBtn').classList.replace('bg-emerald-600', 'bg-slate-800');
-            } else {
-                editMode = true; document.getElementById('draftPoolArea').classList.remove('hidden');
-                document.getElementById('editText').innerText = "SAVE CHANGES";
-                document.getElementById('editBtn').classList.replace('bg-slate-800', 'bg-emerald-600');
-                document.getElementById('draftWarning').classList.add('hidden');
-            }
-            render();
-        }
-
-        function handleSlotClick(loc, teamKey, courtIdx, slotIdx) {
-            if (!editMode) { if (loc === 'court') handleWin(courtIdx, teamKey); return; }
-            if (selectedFromPool === null) {
-                let name = "";
-                if (loc === 'court') { if (courts[courtIdx][teamKey][slotIdx]) name = courts[courtIdx][teamKey].splice(slotIdx, 1)[0]; }
-                else { name = waitingQueue.splice(slotIdx, 1)[0]; }
-                if (name) draftPool.push(name);
-            } else {
-                const name = draftPool.splice(selectedFromPool, 1)[0];
-                if (loc === 'court') { if (courts[courtIdx][teamKey].length < teamSize) courts[courtIdx][teamKey].push(name); else draftPool.push(name); }
-                else { waitingQueue.push(name); }
-                selectedFromPool = null;
-            }
-            render();
-        }
-
-        function handleWin(idx, key) {
-            if (appMode === 'rotation') {
-                courts[idx].winner = key; pendingRotation = { idx, key };
-                document.getElementById('scoreArea').classList.remove('hidden');
-            } else {
-                if (tournamentPhase === 'complete') return;
-                courts[idx].winner = key;
-                document.getElementById('nextPhaseBtn').style.opacity = courts.every(c => c.winner) ? "1" : "0.5";
-            }
-            render();
-        }
-
-        function confirmRotation() {
-            const sA = Math.max(0, document.getElementById('scoreA').value || 0);
-            const sB = Math.max(0, document.getElementById('scoreB').value || 0);
-            const { idx, key } = pendingRotation;
-            const court = courts[idx];
-            historyData.unshift({ teamA: [...court.teamA], teamB: [...court.teamB], score: `${sA}-${sB}`, winnerKey: key });
-            const loserKey = key === 'teamA' ? 'teamB' : 'teamA';
-            if (waitingQueue.length >= teamSize) { waitingQueue.push(...court[loserKey]); court[loserKey] = waitingQueue.splice(0, teamSize); }
-            else { let s = [...court.teamA, ...court.teamB].sort(() => Math.random() - 0.5); court.teamA = s.slice(0, teamSize); court.teamB = s.slice(teamSize); }
-            court.winner = null; pendingRotation = null;
-            document.getElementById('scoreA').value = ''; document.getElementById('scoreB').value = '';
-            document.getElementById('scoreArea').classList.add('hidden');
-            render();
-        }
-
-        function cancelScore() { if(pendingRotation) courts[pendingRotation.idx].winner = null; pendingRotation = null; document.getElementById('scoreArea').classList.add('hidden'); render(); }
-
-        function render() {
-            const cont = document.getElementById('courtsContainer');
-            cont.innerHTML = '';
-            if (tournamentPhase === 'complete') return;
-
-            courts.forEach((c, i) => {
-                const div = document.createElement('div');
-                div.className = "space-y-3";
-                div.innerHTML = `
-                    <div class="text-center text-[10px] font-black text-slate-700 uppercase tracking-widest">${tournamentPhase === 'finals' ? (i === 0 ? 'CHAMPIONSHIP' : 'BRONZE MATCH') : 'Court ' + (i+1)}</div>
-                    <div class="space-y-2">
-                        <div onclick="handleSlotClick('court', 'teamA', ${i}, 0)" class="flex flex-col gap-2 p-4 bg-slate-900 rounded-[2rem] border-2 transition-all ${c.winner === 'teamA' ? 'winner-glow' : 'border-slate-800'}">
-                            <span class="text-[9px] font-bold text-indigo-500 uppercase text-center">Team A</span>
-                            <div class="flex justify-center gap-2">
-                                ${Array.from({length: teamSize}).map((_, si) => `<div class="player-slot px-4 py-2 rounded-xl font-bold text-sm min-w-[80px] text-center ${c.teamA[si] ? 'slot-filled' : 'slot-empty'} ${editMode && selectedFromPool !== null && !c.teamA[si] ? 'draft-active' : ''}">${c.teamA[si] || '...'}</div>`).join('')}
-                            </div>
-                        </div>
-                        <div class="text-center text-slate-800 font-black italic text-[10px]">VS</div>
-                        <div onclick="handleSlotClick('court', 'teamB', ${i}, 0)" class="flex flex-col gap-2 p-4 bg-slate-900 rounded-[2rem] border-2 transition-all ${c.winner === 'teamB' ? 'winner-glow' : 'border-slate-800'}">
-                            <span class="text-[9px] font-bold text-rose-500 uppercase text-center">Team B</span>
-                            <div class="flex justify-center gap-2">
-                                ${Array.from({length: teamSize}).map((_, si) => `<div class="player-slot px-4 py-2 rounded-xl font-bold text-sm min-w-[80px] text-center ${c.teamB[si] ? 'slot-filled' : 'slot-empty'} ${editMode && selectedFromPool !== null && !c.teamB[si] ? 'draft-active' : ''}">${c.teamB[si] || '...'}</div>`).join('')}
-                            </div>
-                        </div>
-                    </div>`;
-                cont.appendChild(div);
-            });
-            document.getElementById('draftPool').innerHTML = draftPool.map((p, i) => `<div onclick="selectedFromPool = ${i}; render();" class="px-4 py-2 bg-indigo-600 rounded-xl font-bold text-sm border-2 ${selectedFromPool === i ? 'border-white' : 'border-transparent'}">${p}</div>`).join('');
-            document.getElementById('waitingList').innerHTML = waitingQueue.map((p, i) => `<div onclick="handleSlotClick('waiting', null, null, ${i})" class="px-4 py-2 bg-slate-800 rounded-xl font-bold text-sm slot-filled">${p}</div>`).join('');
-            if (editMode) document.getElementById('waitingList').innerHTML += `<div onclick="handleSlotClick('waiting')" class="px-4 py-2 border-2 border-dashed border-slate-700 rounded-xl text-xs text-slate-500 font-bold">+ BENCH</div>`;
-            document.getElementById('historyList').innerHTML = historyData.map(h => `<div class="bg-slate-900/50 border border-slate-800 p-3 rounded-2xl text-[10px] flex justify-between items-center"><div class="flex flex-col flex-1"><span class="${h.winnerKey === 'teamA' ? 'text-emerald-500 font-bold' : 'text-slate-400'}">${h.teamA.join(' & ')}</span><span class="text-slate-600 italic py-0.5 text-[9px]">vs</span><span class="${h.winnerKey === 'teamB' ? 'text-emerald-500 font-bold' : 'text-slate-400'}">${h.teamB.join(' & ')}</span></div><span class="font-bold text-indigo-400 bg-slate-950 px-2 py-1 rounded ml-2">${h.score}</span></div>`).join('');
-            lucide.createIcons();
-        }
-
-        function progressTournament() {
-            if (!courts.every(c => c.winner !== null)) return;
-            let wins = [], loss = [];
-            courts.forEach(c => {
-                if (c.winner === 'teamA') { wins.push(c.teamA); loss.push(c.teamB); }
-                else { wins.push(c.teamB); loss.push(c.teamA); }
-            });
-            if (tournamentPhase === 'qualifying') {
-                tournamentPhase = 'finals';
-                document.getElementById('screenTitle').innerText = "FINALS ROUND";
-                courts = [{ teamA: wins[0], teamB: wins[1] || wins[0], winner: null }];
-                if (loss.length >= 2) courts.push({ teamA: loss[0], teamB: loss[1], winner: null });
-                document.getElementById('nextPhaseBtn').innerText = "Finish Tournament";
-            } else if (tournamentPhase === 'finals') {
-                tournamentPhase = 'complete';
-                document.getElementById('screenTitle').innerText = "RESULTS";
-                document.getElementById('actionArea').classList.add('hidden');
-                document.getElementById('tournamentResults').classList.remove('hidden');
-                
-                const podium = document.getElementById('podium');
-                const first = courts[0].winner === 'teamA' ? courts[0].teamA : courts[0].teamB;
-                const second = courts[0].winner === 'teamA' ? courts[0].teamB : courts[0].teamA;
-                const third = courts[1] ? (courts[1].winner === 'teamA' ? courts[1].teamA : courts[1].teamB) : null;
-
-                podium.innerHTML = `
-                    <div class="bg-amber-500/10 p-5 rounded-3xl border border-amber-500/30 text-center"><span class="text-amber-500 text-[10px] font-bold uppercase tracking-widest">1st Place</span><div class="text-xl font-black">${first.join(' & ')}</div></div>
-                    <div class="bg-slate-400/10 p-5 rounded-3xl border border-slate-400/30 text-center"><span class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">2nd Place</span><div class="text-xl font-black">${second.join(' & ')}</div></div>
-                    ${third ? `<div class="bg-orange-700/10 p-5 rounded-3xl border border-orange-700/30 text-center"><span class="text-orange-700 text-[10px] font-bold uppercase tracking-widest">3rd Place</span><div class="text-xl font-black">${third.join(' & ')}</div></div>` : ''}
-                `;
-            }
-            render();
-        }
-
-        document.getElementById('playerNameInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') addPlayerToList(); });
-        lucide.createIcons();
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>

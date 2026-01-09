@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+.screen { transition: opacity 0.3s ease, transform 0.3s ease; width: 100%; }
+.hidden-screen { display: none !important; opacity: 0; transform: translateY(10px); }
+.visible-screen { display: block !important; animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.winner-glow { border-color: #22c55e !important; background-color: #064e3b !important; transform: scale(1.02); }
+.mode-btn-active { background-color: #4f46e5 !important; border-color: #6366f1 !important; color: white !important; }
+.player-slot { transition: all 0.2s ease; border: 2px dashed #334155; }
+.slot-filled { border-style: solid; border-color: #475569; background-color: #0f172a; }
+.slot-empty { background-color: rgba(255, 255, 255, 0.03); }
+.draft-active { border-color: #6366f1 !important; background-color: #1e1b4b !important; box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
+
