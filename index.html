@@ -81,6 +81,10 @@
             <div id="courtsContainer" class="space-y-8"></div>
 
             <div id="rotationMeta" class="space-y-6 pt-6 border-t border-slate-900">
+                <div id="scoreboardSection" class="space-y-3">
+                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 text-center">Scoreboard</h3>
+                    <div id="scoreboardList" class="space-y-2 text-sm max-h-60 overflow-y-auto"></div>
+                </div>
                 <div id="waitingSection" class="space-y-4">
                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 mb-2 text-center">Bench / Challengers</h3>
                    <div id="waitingList" class="flex flex-wrap gap-2 justify-center min-h-[40px]"></div>
@@ -101,7 +105,7 @@
                     <span class="font-black text-slate-700">-</span>
                     <input type="number" id="scoreB" min="0" max="21" oninput="this.value = this.value < 0 ? 0 : (this.value > 21 ? 21 : this.value)" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-white" placeholder="B">
                 </div>
-                <button onclick="confirmRotation()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold text-sm">Save & Rotate</button>
+                <button onclick="confirmRotation()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold text-sm">Save Score</button>
             </div>
 
             <div id="tournamentResults" class="hidden space-y-4 pt-6 border-t border-slate-900">
